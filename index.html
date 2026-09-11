@@ -1,0 +1,1666 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MASCAL 大量傷患檢傷演練 - 1-30 滾動抽籤機</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #091b3a 0%, #102e6b 50%, #0d2250 100%);
+      --card-bg: rgba(16, 38, 80, 0.85);
+      --primary-cyan: #00f0ff;
+      --primary-blue: #2563eb;
+      --accent-gold: #f59e0b;
+      --zone-red: #ef4444;
+      --zone-yellow: #eab308;
+      --zone-green: #10b981;
+      --zone-black: #1e293b;
+      --zone-or: #06b6d4;
+      --zone-icu: #a855f7;
+      --zone-discharged: #3b82f6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background: var(--bg-gradient);
+      min-height: 100vh;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+      overflow-x: hidden;
+    }
+
+    /* Top Bar */
+    .top-bar {
+      width: 100%;
+      max-width: 1260px;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      margin-bottom: 12px;
+      padding: 0 4px;
+    }
+
+    .btn-download {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 7px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+      transition: all 0.2s;
+    }
+
+    .btn-download:hover {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      transform: translateY(-2px);
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    header h1 {
+      font-size: clamp(22px, 3.5vw, 34px);
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-shadow: 0 0 15px rgba(0, 240, 255, 0.5);
+      background: linear-gradient(90deg, #ffffff, #93c5fd, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 4px;
+    }
+
+    header p {
+      color: #94a3b8;
+      font-size: 14px;
+    }
+
+    /* Main Grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 410px;
+      gap: 20px;
+      max-width: 1260px;
+      width: 100%;
+    }
+
+    @media (max-width: 1020px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Lottery Stage */
+    .lottery-panel {
+      background: var(--card-bg);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Chamber */
+    .chamber-wrapper {
+      width: 100%;
+      background: radial-gradient(circle at 50% 30%, rgba(30, 64, 175, 0.45), rgba(7, 18, 48, 0.95));
+      border: 1.5px solid rgba(56, 189, 248, 0.35);
+      border-radius: 18px;
+      padding: 20px 16px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 0 40px rgba(0, 240, 255, 0.15);
+    }
+
+    .chamber-wrapper::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #00f0ff, transparent);
+    }
+
+    .chamber-title {
+      font-size: 14px;
+      color: #7dd3fc;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chamber-title .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #00f0ff;
+      box-shadow: 0 0 10px #00f0ff;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.3; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.3); }
+    }
+
+    .drawn-balls-stage {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      min-height: 94px;
+      width: 100%;
+      padding: 6px;
+      transition: background 0.2s;
+    }
+
+    .drawn-balls-stage.drag-over {
+      background: rgba(56, 189, 248, 0.15);
+      border-radius: 12px;
+    }
+
+    .empty-hint {
+      color: #94a3b8;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* 3D Ball */
+    .ball {
+      width: 66px;
+      height: 66px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 26px;
+      font-weight: 700;
+      color: #ffffff;
+      cursor: grab;
+      position: relative;
+      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s;
+      border: 2px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 
+        0 8px 18px rgba(0, 0, 0, 0.5),
+        inset -4px -6px 12px rgba(0, 0, 0, 0.5),
+        inset 4px 6px 12px rgba(255, 255, 255, 0.4);
+      touch-action: none;
+    }
+
+    .ball:active {
+      cursor: grabbing;
+    }
+
+    .ball.dragging {
+      opacity: 0.45;
+      transform: scale(0.92);
+    }
+
+    .ball::after {
+      content: '點擊/拖曳';
+      position: absolute;
+      bottom: -20px;
+      font-size: 11px;
+      color: #38bdf8;
+      font-family: 'Noto Sans TC', sans-serif;
+      font-weight: 500;
+      white-space: nowrap;
+      opacity: 0;
+      transform: translateY(-4px);
+      transition: all 0.2s;
+    }
+
+    .ball:hover {
+      transform: translateY(-6px) scale(1.1);
+      filter: brightness(1.2);
+    }
+
+    .ball:hover::after {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .ball-blue { background: radial-gradient(circle at 35% 30%, #60a5fa, #1d4ed8 70%, #0f172a); }
+    .ball-green { background: radial-gradient(circle at 35% 30%, #34d399, #059669 70%, #064e3b); }
+    .ball-purple { background: radial-gradient(circle at 35% 30%, #c084fc, #7e22ce 70%, #3b0764); }
+    .ball-orange { background: radial-gradient(circle at 35% 30%, #fb923c, #ea580c 70%, #7c2d12); }
+    .ball-cyan { background: radial-gradient(circle at 35% 30%, #38bdf8, #0284c7 70%, #082f49); }
+    .ball-pink { background: radial-gradient(circle at 35% 30%, #f472b6, #db2777 70%, #500724); }
+
+    .ball.rolling {
+      animation: spinRoll 0.12s infinite alternate ease-in-out;
+      border-color: #00f0ff;
+      box-shadow: 0 0 20px #00f0ff;
+      cursor: wait;
+    }
+
+    @keyframes spinRoll {
+      0% { transform: translateY(-4px) scale(0.95); }
+      100% { transform: translateY(4px) scale(1.05); }
+    }
+
+    /* Actions Bar */
+    .actions-bar {
+      display: flex;
+      gap: 14px;
+      width: 100%;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .btn {
+      padding: 13px 26px;
+      font-size: 15px;
+      font-weight: 700;
+      border-radius: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      border: none;
+      outline: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
+      color: #fff;
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: linear-gradient(135deg, #0369a1 0%, #1d4ed8 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(37, 99, 235, 0.6);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      filter: grayscale(0.5);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.45);
+    }
+
+    .btn-danger:hover {
+      background: #ef4444;
+      color: #fff;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(239, 68, 68, 0.4);
+    }
+
+    /* 1-30 Number Board */
+    .pool-board {
+      width: 100%;
+      margin-top: 8px;
+    }
+
+    .pool-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding: 0 4px;
+    }
+
+    .pool-header span {
+      font-size: 13px;
+      color: #cbd5e1;
+    }
+
+    .pool-header strong {
+      color: #38bdf8;
+    }
+
+    .board-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+      width: 100%;
+    }
+
+    .board-cell {
+      height: 46px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      color: #e2e8f0;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .board-cell:hover {
+      background: rgba(56, 189, 248, 0.22);
+      border-color: #38bdf8;
+      transform: translateY(-2px);
+    }
+
+    .board-cell.drawn {
+      background: rgba(15, 23, 42, 0.65);
+      color: #475569;
+      border-color: rgba(255, 255, 255, 0.06);
+      text-decoration: line-through;
+    }
+
+    .board-cell.drawn::after {
+      content: '✔';
+      position: absolute;
+      top: 2px;
+      right: 4px;
+      font-size: 10px;
+      color: #10b981;
+      text-decoration: none;
+    }
+
+    .board-cell.highlight {
+      background: #0284c7;
+      color: #fff;
+      border-color: #38bdf8;
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.8);
+      animation: cellPop 0.4s ease-out;
+    }
+
+    @keyframes cellPop {
+      0% { transform: scale(0.8); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+
+    /* ========================================================= */
+    /* RIGHT PANEL: 7-ZONE TRIAGE/DESTINATION DROP SYSTEM */
+    /* ========================================================= */
+    .triage-zones-panel {
+      background: var(--card-bg);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+    }
+
+    .triage-zones-header {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 8px;
+    }
+
+    .triage-zones-header span {
+      font-size: 12px;
+      color: #94a3b8;
+      font-weight: 500;
+    }
+
+    .zones-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .drop-zone {
+      border-radius: 12px;
+      padding: 8px 12px;
+      min-height: 74px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      border: 1.5px dashed rgba(255, 255, 255, 0.2);
+      background: rgba(15, 23, 42, 0.5);
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .drop-zone.drag-hover {
+      transform: scale(1.02);
+      box-shadow: 0 0 18px rgba(255, 255, 255, 0.25);
+      border-style: solid;
+    }
+
+    .drop-zone-red {
+      border-color: rgba(239, 68, 68, 0.4);
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(15, 23, 42, 0.6) 100%);
+    }
+    .drop-zone-red.drag-hover { border-color: #ef4444; background: rgba(239, 68, 68, 0.25); }
+
+    .drop-zone-yellow {
+      border-color: rgba(234, 179, 8, 0.4);
+      background: linear-gradient(135deg, rgba(234, 179, 8, 0.12) 0%, rgba(15, 23, 42, 0.6) 100%);
+    }
+    .drop-zone-yellow.drag-hover { border-color: #eab308; background: rgba(234, 179, 8, 0.25); }
+
+    .drop-zone-green {
+      border-color: rgba(16, 185, 129, 0.4);
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(15, 23, 42, 0.6) 100%);
+    }
+    .drop-zone-green.drag-hover { border-color: #10b981; background: rgba(16, 185, 129, 0.25); }
+
+    .drop-zone-black {
+      border-color: rgba(148, 163, 184, 0.3);
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.8) 100%);
+    }
+    .drop-zone-black.drag-hover { border-color: #cbd5e1; background: rgba(51, 65, 85, 0.5); }
+
+    .drop-zone-or {
+      border-color: rgba(6, 182, 212, 0.4);
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.12) 0%, rgba(15, 23, 42, 0.6) 100%);
+    }
+    .drop-zone-or.drag-hover { border-color: #06b6d4; background: rgba(6, 182, 212, 0.25); }
+
+    .drop-zone-icu {
+      border-color: rgba(168, 85, 247, 0.4);
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.12) 0%, rgba(15, 23, 42, 0.6) 100%);
+    }
+    .drop-zone-icu.drag-hover { border-color: #a855f7; background: rgba(168, 85, 247, 0.25); }
+
+    .drop-zone-discharged {
+      border-color: rgba(59, 130, 246, 0.4);
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(15, 23, 42, 0.6) 100%);
+    }
+    .drop-zone-discharged.drag-hover { border-color: #3b82f6; background: rgba(59, 130, 246, 0.25); }
+
+    .zone-title-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .zone-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .zone-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+    }
+    .dot-red { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
+    .dot-yellow { background: #eab308; box-shadow: 0 0 8px #eab308; }
+    .dot-green { background: #10b981; box-shadow: 0 0 8px #10b981; }
+    .dot-black { background: #64748b; box-shadow: 0 0 8px #64748b; }
+    .dot-or { background: #06b6d4; box-shadow: 0 0 8px #06b6d4; }
+    .dot-icu { background: #a855f7; box-shadow: 0 0 8px #a855f7; }
+    .dot-discharged { background: #3b82f6; box-shadow: 0 0 8px #3b82f6; }
+
+    .zone-counter {
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 12px;
+      color: #94a3b8;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 1px 7px;
+      border-radius: 10px;
+    }
+
+    .zone-balls-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      min-height: 40px;
+    }
+
+    .zone-empty-text {
+      font-size: 11px;
+      color: #64748b;
+      margin: auto;
+      pointer-events: none;
+    }
+
+    /* Compact Ball in Drop Zones */
+    .zone-ball {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      color: #ffffff;
+      cursor: grab;
+      border: 1.5px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4), inset -2px -3px 6px rgba(0,0,0,0.5);
+      transition: transform 0.15s;
+    }
+
+    .zone-ball:hover {
+      transform: scale(1.15);
+      filter: brightness(1.2);
+    }
+
+    .zone-ball:active {
+      cursor: grabbing;
+    }
+
+    /* ========================================================= */
+    /* SLIDE POPUP MODAL (PURE TEXT LAYOUT - NO IMAGES) */
+    /* ========================================================= */
+    .slide-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(4, 10, 26, 0.92);
+      backdrop-filter: blur(14px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .slide-modal.active {
+      display: flex;
+      animation: fadeIn 0.22s ease-out forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .slide-canvas {
+      width: 100%;
+      max-width: 820px;
+      min-height: 480px;
+      background: radial-gradient(circle at 50% 10%, #2f3e56 0%, #1e293b 100%);
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 44px 50px 36px 50px;
+      overflow: hidden;
+    }
+
+    @media (max-width: 768px) {
+      .slide-canvas {
+        padding: 36px 24px 28px 24px;
+        min-height: 440px;
+      }
+    }
+
+    .slide-patient-id {
+      font-size: clamp(28px, 3.8vw, 42px);
+      font-weight: 900;
+      color: #ffffff;
+      line-height: 1.2;
+      margin-bottom: 18px;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+      padding-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .slide-patient-id .badge-num {
+      background: rgba(255, 255, 255, 0.12);
+      font-size: 18px;
+      padding: 5px 14px;
+      border-radius: 8px;
+      font-family: 'Chakra Petch', sans-serif;
+      color: #7dd3fc;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .slide-body-content {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      flex: 1;
+    }
+
+    .slide-details-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      font-size: clamp(18px, 2.1vw, 24px);
+      line-height: 1.5;
+      font-weight: 500;
+      color: #f1f5f9;
+    }
+
+    .slide-details-list li {
+      list-style: none;
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .slide-details-list li::before {
+      content: '•';
+      color: #38bdf8;
+      font-size: 26px;
+      line-height: 0;
+    }
+
+    .vitals-box {
+      margin-top: 6px;
+      padding: 16px 20px;
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 12px;
+      border-left: 5px solid #38bdf8;
+      font-size: clamp(16px, 1.8vw, 21px);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .vitals-title {
+      font-size: 13px;
+      color: #94a3b8;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 2px;
+    }
+
+    /* Triage Tag & Reveal Area */
+    .triage-reveal-area {
+      margin-top: 24px;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 18px;
+    }
+
+    .btn-reveal-answer {
+      background: rgba(56, 189, 248, 0.15);
+      color: #7dd3fc;
+      border: 1.5px dashed rgba(56, 189, 248, 0.6);
+      border-radius: 12px;
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-reveal-answer:hover {
+      background: rgba(56, 189, 248, 0.3);
+      color: #ffffff;
+      border-style: solid;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(56, 189, 248, 0.35);
+    }
+
+    .triage-bottom-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 12px 32px;
+      border-radius: 12px;
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+      cursor: pointer;
+      animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    @keyframes popIn {
+      0% { opacity: 0; transform: scale(0.85); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    .triage-IMMEDIATE {
+      background: #dc2626;
+      color: #ffffff;
+      border: 1.5px solid #f87171;
+    }
+
+    .triage-DELAYED {
+      background: #d97706;
+      color: #ffffff;
+      border: 1.5px solid #fde047;
+    }
+
+    .triage-MINOR {
+      background: #15803d;
+      color: #ffffff;
+      border: 1.5px solid #86efac;
+    }
+
+    .triage-EXPECTANT {
+      background: #18181b;
+      color: #e4e4e7;
+      border: 1.5px solid #71717a;
+    }
+
+    .slide-nav-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #fff;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      z-index: 10;
+    }
+
+    .slide-nav-btn:hover {
+      background: #0284c7;
+      border-color: #38bdf8;
+      transform: translateY(-50%) scale(1.1);
+    }
+
+    .btn-prev { left: -22px; }
+    .btn-next { right: -22px; }
+
+    @media (max-width: 900px) {
+      .btn-prev { left: 8px; }
+      .btn-next { right: 8px; }
+    }
+
+    .slide-top-controls {
+      position: absolute;
+      top: 14px;
+      right: 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 20;
+    }
+
+    .btn-back {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      color: #fff;
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-back:hover {
+      background: #ef4444;
+      border-color: #f87171;
+    }
+
+    .toggle-answer-btn {
+      background: rgba(56, 189, 248, 0.2);
+      border: 1px solid #38bdf8;
+      color: #7dd3fc;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .toggle-answer-btn:hover {
+      background: #0284c7;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top bar with export button -->
+  <div class="top-bar">
+    <button class="btn-download" onclick="downloadCurrentApp()">
+      📥 匯出此程式 (.html)
+    </button>
+  </div>
+
+  <header>
+    <h1>1-30 隨機抽籤檢傷系統</h1>
+    <p>每次隨機抽取 1～6 個不重複號碼，點選號碼可檢視投影片，並可將彩球拖曳至右側 7 個檢傷分流區</p>
+  </header>
+
+  <div class="main-grid">
+    <!-- Left: Lottery Machine & Pool Board -->
+    <div class="lottery-panel">
+      
+      <!-- Glass Chamber Display Area (Drop-enabled) -->
+      <div class="chamber-wrapper">
+        <div class="chamber-title">
+          <span class="pulse-dot"></span>
+          <span id="chamberLabel">目前抽出號碼（點擊查看投影片 / 可拖曳至右側分流）</span>
+        </div>
+        <div class="drawn-balls-stage" id="drawnStage" data-zone="chamber">
+          <div class="empty-hint">✨ 點擊下方按鈕開始隨機抽籤（1-6 個）</div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="actions-bar">
+        <button class="btn btn-primary" id="btnDraw" onclick="startDrawProcess()">
+          🎲 開始隨機抽籤 (1-6個)
+        </button>
+        <button class="btn btn-danger" onclick="resetAll()">
+          🔄 重設全部紀錄
+        </button>
+      </div>
+
+      <!-- 1-30 Pool Grid Board -->
+      <div class="pool-board">
+        <div class="pool-header">
+          <span>號碼池看板 (點擊任何號碼皆可直接預覽投影片)</span>
+          <span>剩餘：<strong id="remainCount">30</strong> / 30</span>
+        </div>
+        <div class="board-grid" id="boardGrid">
+          <!-- 1 to 30 cells generated by script -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right: 7-Zone Triage Drop Zones -->
+    <div class="triage-zones-panel">
+      <div class="triage-zones-header">
+        <strong>檢傷分流區 (拖曳彩球至此)</strong>
+        <span>點擊區內彩球可隨時回看</span>
+      </div>
+
+      <div class="zones-grid">
+        <!-- RED ZONE (IMMEDIATE) -->
+        <div class="drop-zone drop-zone-red" data-zone="IMMEDIATE">
+          <div class="zone-title-bar">
+            <div class="zone-badge">
+              <span class="zone-dot dot-red"></span>
+              <span style="color: #fca5a5;">紅區 (IMMEDIATE - 第一優先)</span>
+            </div>
+            <span class="zone-counter" id="counter-IMMEDIATE">0</span>
+          </div>
+          <div class="zone-balls-container" id="zone-container-IMMEDIATE">
+            <span class="zone-empty-text">拖曳至此處</span>
+          </div>
+        </div>
+
+        <!-- YELLOW ZONE (DELAYED) -->
+        <div class="drop-zone drop-zone-yellow" data-zone="DELAYED">
+          <div class="zone-title-bar">
+            <div class="zone-badge">
+              <span class="zone-dot dot-yellow"></span>
+              <span style="color: #fde047;">黃區 (DELAYED - 第二優先)</span>
+            </div>
+            <span class="zone-counter" id="counter-DELAYED">0</span>
+          </div>
+          <div class="zone-balls-container" id="zone-container-DELAYED">
+            <span class="zone-empty-text">拖曳至此處</span>
+          </div>
+        </div>
+
+        <!-- GREEN ZONE (MINOR) -->
+        <div class="drop-zone drop-zone-green" data-zone="MINOR">
+          <div class="zone-title-bar">
+            <div class="zone-badge">
+              <span class="zone-dot dot-green"></span>
+              <span style="color: #86efac;">綠區 (MINOR - 第三優先)</span>
+            </div>
+            <span class="zone-counter" id="counter-MINOR">0</span>
+          </div>
+          <div class="zone-balls-container" id="zone-container-MINOR">
+            <span class="zone-empty-text">拖曳至此處</span>
+          </div>
+        </div>
+
+        <!-- BLACK ZONE (EXPECTANT) - 瀕死 -->
+        <div class="drop-zone drop-zone-black" data-zone="EXPECTANT">
+          <div class="zone-title-bar">
+            <div class="zone-badge">
+              <span class="zone-dot dot-black"></span>
+              <span style="color: #cbd5e1;">黑區 (EXPECTANT - 瀕死)</span>
+            </div>
+            <span class="zone-counter" id="counter-EXPECTANT">0</span>
+          </div>
+          <div class="zone-balls-container" id="zone-container-EXPECTANT">
+            <span class="zone-empty-text">拖曳至此處</span>
+          </div>
+        </div>
+
+        <!-- OR ZONE (OPERATING ROOM) -->
+        <div class="drop-zone drop-zone-or" data-zone="OR">
+          <div class="zone-title-bar">
+            <div class="zone-badge">
+              <span class="zone-dot dot-or"></span>
+              <span style="color: #67e8f9;">OR (手術室)</span>
+            </div>
+            <span class="zone-counter" id="counter-OR">0</span>
+          </div>
+          <div class="zone-balls-container" id="zone-container-OR">
+            <span class="zone-empty-text">拖曳至此處</span>
+          </div>
+        </div>
+
+        <!-- ICU ZONE (INTENSIVE CARE UNIT) -->
+        <div class="drop-zone drop-zone-icu" data-zone="ICU">
+          <div class="zone-title-bar">
+            <div class="zone-badge">
+              <span class="zone-dot dot-icu"></span>
+              <span style="color: #d8b4fe;">ICU (加護病房)</span>
+            </div>
+            <span class="zone-counter" id="counter-ICU">0</span>
+          </div>
+          <div class="zone-balls-container" id="zone-container-ICU">
+            <span class="zone-empty-text">拖曳至此處</span>
+          </div>
+        </div>
+
+        <!-- DISCHARGED ZONE (出院) -->
+        <div class="drop-zone drop-zone-discharged" data-zone="DISCHARGED">
+          <div class="zone-title-bar">
+            <div class="zone-badge">
+              <span class="zone-dot dot-discharged"></span>
+              <span style="color: #93c5fd;">出院 (DISCHARGE)</span>
+            </div>
+            <span class="zone-counter" id="counter-DISCHARGED">0</span>
+          </div>
+          <div class="zone-balls-container" id="zone-container-DISCHARGED">
+            <span class="zone-empty-text">拖曳至此處</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE POPUP MODAL (PURE TEXT LAYOUT) -->
+  <div class="slide-modal" id="slideModal" onclick="handleModalBackdropClick(event)">
+    <div class="slide-canvas" id="slideCanvas">
+      
+      <!-- Top Navigation & Controls inside Slide -->
+      <div class="slide-top-controls">
+        <button class="toggle-answer-btn" id="btnToggleAnswer" onclick="toggleAnswerVisibility()">
+          👁️ 顯示檢傷等級
+        </button>
+        <button class="btn-back" onclick="closeSlideModal()">
+          ✕ Back / 返回
+        </button>
+      </div>
+
+      <!-- Prev / Next slide buttons -->
+      <button class="slide-nav-btn btn-prev" onclick="navigateSlide(-1)" title="上一位 (←)">❮</button>
+      <button class="slide-nav-btn btn-next" onclick="navigateSlide(1)" title="下一位 (→)">❯</button>
+
+      <!-- Slide Main Pure Text Content -->
+      <div>
+        <div class="slide-patient-id">
+          <span id="slideTitle">Patient #1</span>
+          <span class="badge-num" id="slideBadgeNum">1 / 30</span>
+        </div>
+
+        <div class="slide-body-content">
+          <ul class="slide-details-list" id="slideDetailsList">
+            <!-- Injected via JS -->
+          </ul>
+
+          <div class="vitals-box">
+            <div class="vitals-title">生命徵象與意識評估 (VITALS & NEURO)</div>
+            <div id="slideVitalsBox" style="display:flex; flex-direction:column; gap:6px;">
+              <!-- Vitals Injected via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Triage Tag or Reveal Button Container (Default Hidden) -->
+      <div class="triage-reveal-area" id="slideTriageContainer">
+        <!-- Injected via JS -->
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const PATIENTS_DATA = [
+      { id: 1, title: "Patient #1", demographics: "28歲男性", mobility: "無法自行走動", injury: "胸腹交界穿刺傷", vitals: ["RR = 32", "Pulse: palpable", "Mental: obey"], triage: "IMMEDIATE" },
+      { id: 2, title: "Patient #2", demographics: "38歲男性", mobility: "無法自行走動", injury: "頸部與胸腹部多處穿刺傷", vitals: ["RR = 0，head tilt 後無自主呼吸", "Pulse: non-palpable radial pulse", "Mental: unable to follow command"], triage: "EXPECTANT" },
+      { id: 3, title: "Patient #3", demographics: "30歲男性", mobility: "可自行走動", injury: "左上臂撕裂傷合併軟組織缺損，無active bleeding", vitals: ["RR = 22", "Pulse: palpable", "Mental: obey"], triage: "MINOR" },
+      { id: 4, title: "Patient #4", demographics: "32歲男性", mobility: "無法自行走動", injury: "右大腿中段深度撕裂傷合併軟組織缺損，自行使用止血帶後現無active bleeding", vitals: ["RR = 24", "Pulse: palpable", "Mental: obey"], triage: "DELAYED" },
+      { id: 5, title: "Patient #5", demographics: "33歲男性", mobility: "無法自行走動", injury: "右側腋窩近胸壁深撕裂傷，合併大量出血", vitals: ["RR = 36", "Pulse: non-palpable radial pulse", "Mental: not obey"], triage: "IMMEDIATE" },
+      { id: 6, title: "Patient #6", demographics: "22歲男性", mobility: "口咽部嚴重爆炸傷合併大量出血", injury: "嚴重氣道損傷與出血", vitals: ["RR = 0，head tilt 後回復自主呼吸", "Pulse: non-palpable", "Mental: not obey"], triage: "IMMEDIATE" },
+      { id: 7, title: "Patient #7", demographics: "28歲女性", mobility: "可自行走動", injury: "左下肢燙傷約3%TBSA", vitals: ["RR = 16", "Pulse: palpable", "Mental: obey"], triage: "MINOR" },
+      { id: 8, title: "Patient #8", demographics: "30歲男性", mobility: "無法自行走動", injury: "被拋出破片擊中右小腿，明顯開放性骨折，無大量出血", vitals: ["RR = 18", "Pulse: palpable", "Mental: obey"], triage: "DELAYED" },
+      { id: 9, title: "Patient #9", demographics: "25歲女性", mobility: "無法自行走動", injury: "被倒塌的圍欄壓住左下肢", vitals: ["RR = 18", "Pulse: palpable", "Mental: obey"], triage: "DELAYED" },
+      { id: 10, title: "Patient #10", demographics: "45歲男性", mobility: "可自行走動", injury: "右上肢燙傷約8%TBSA", vitals: ["RR = 18", "Pulse: palpable", "Mental: obey"], triage: "MINOR" },
+      { id: 11, title: "Patient #11", demographics: "18歲男性", mobility: "可自行走動", injury: "臉部遭破片劃傷，已止血", vitals: ["RR = 14", "Pulse: palpable", "Mental: obey"], triage: "MINOR" },
+      { id: 12, title: "Patient #12", demographics: "19歲男性", mobility: "可自行走動", injury: "左側上下肢多處破片劃傷，無active bleeding", vitals: ["RR = 16", "Pulse: palpable", "Mental: obey"], triage: "MINOR" },
+      { id: 13, title: "Patient #13", demographics: "23歲男性", mobility: "無法自行走動", injury: "腹部鈍傷合併ecchymosis", vitals: ["RR = 24", "Pulse: palpable", "Mental: obey"], triage: "DELAYED" },
+      { id: 14, title: "Patient #14", demographics: "27歲男性", mobility: "無法自行走動", injury: "右下肢明顯變形", vitals: ["RR = 24", "Pulse: palpable", "Mental: obey"], triage: "DELAYED" },
+      { id: 15, title: "Patient #15", demographics: "27歲女性", mobility: "可自行走動", injury: "左手腕變形無法施力", vitals: ["RR = 22", "Pulse: palpable", "Mental: obey"], triage: "MINOR" },
+      { 
+        id: 16, 
+        title: "Patient #16", 
+        demographics: "25歲女性", 
+        mobility: "可自行走動", 
+        injury: "右手掌腫脹無法施力", 
+        vitals: ["RR = 20", "Pulse: palpable", "Mental: obey"], 
+        triage: "MINOR" 
+      },
+      { id: 17, title: "Patient #17", demographics: "24歲男性", mobility: "無法自行走動", injury: "左胸疼痛", vitals: ["RR = 28，喘", "Pulse: palpable", "Mental: obey"], triage: "DELAYED" },
+      { id: 18, title: "Patient #18", demographics: "27歲男性", mobility: "無法自行走動", injury: "左下肢燒傷，12%TBSA", vitals: ["RR = 24", "Pulse: palpable", "Mental: obey"], triage: "DELAYED" },
+      { id: 19, title: "Patient #19", demographics: "26歲男性", mobility: "可自行走動", injury: "右肩腫脹變形，無法移動", vitals: ["RR = 20", "Pulse: palpable", "Mental: obey"], triage: "MINOR" },
+      { id: 20, title: "Patient #20", demographics: "20歲男性", mobility: "無法自行走動", injury: "左腹股溝大量出血，無法以止血帶加壓", vitals: ["RR = 32", "Pulse: palpable, weak", "Mental: obey"], triage: "IMMEDIATE" },
+      { id: 21, title: "Patient #21", demographics: "21歲男性", mobility: "無法自行走動", injury: "雙下肢多處淺穿刺傷，無active bleeding", vitals: ["RR = 20", "Pulse: palpable", "Mental: confused"], triage: "DELAYED" },
+      { id: 22, title: "Patient #22", demographics: "29歲男性", mobility: "無法自行走動", injury: "左胸穿刺傷", vitals: ["RR = 34", "Pulse: non-palpable", "Mental: not obey"], triage: "IMMEDIATE" },
+      { id: 23, title: "Patient #23", demographics: "28歲男性", mobility: "可自行走動", injury: "右臀部撕裂傷", vitals: ["RR = 22", "Pulse: palpable", "Mental: obey"], triage: "MINOR" },
+      { id: 24, title: "Patient #24", demographics: "32歲男性", mobility: "無法自行走動", injury: "頭部鈍傷", vitals: ["RR = 18", "Pulse: palpable", "Mental: not obey"], triage: "IMMEDIATE" },
+      { id: 25, title: "Patient #25", demographics: "44歲男性", mobility: "可自行走動", injury: "右手第四指斷指，無殘肢", vitals: ["RR = 20", "Pulse: palpable", "Mental: obey"], triage: "MINOR" },
+      { id: 26, title: "Patient #26", demographics: "27歲女性", mobility: "可自行走動", injury: "左上背部疼痛", vitals: ["RR = 20", "Pulse: palpable", "Mental: obey"], triage: "MINOR" },
+      { id: 27, title: "Patient #27", demographics: "27歲男性", mobility: "可自行走動", injury: "右側軀幹與右大腿燒傷，18%TBSA", vitals: ["RR = 20", "Pulse: palpable", "Mental: obey"], triage: "MINOR" },
+      { id: 28, title: "Patient #28", demographics: "19歲男性", mobility: "無法自行走動", injury: "右腳踝變形", vitals: ["RR = 22", "Pulse: palpable", "Mental: obey"], triage: "DELAYED" },
+      { id: 29, title: "Patient #29", demographics: "21歲男性", mobility: "勉強自行走動", injury: "右膝腫脹變形", vitals: ["RR = 20", "Pulse: palpable", "Mental: obey"], triage: "MINOR" },
+      { id: 30, title: "Patient #30", demographics: "25歲男性", mobility: "無法自行走動", injury: "腹部穿刺傷合併臟器外露", vitals: ["RR = 0，head tilt 後無自主呼吸", "Pulse: non-palpable radial pulse", "Mental: unable to follow command"], triage: "EXPECTANT" }
+    ];
+
+    const TOTAL_NUMBERS = 30;
+    let availablePool = [];
+    let roundsDrawnCount = 0;
+    let isDrawing = false;
+    let currentViewingSlideId = 1;
+    let isAnswerRevealed = false;
+
+    // 7-Zone 分流放置區狀態
+    const triageZonesData = {
+      'IMMEDIATE': [],
+      'DELAYED': [],
+      'MINOR': [],
+      'EXPECTANT': [],
+      'OR': [],
+      'ICU': [],
+      'DISCHARGED': []
+    };
+
+    const ballColors = ['ball-blue', 'ball-green', 'ball-purple', 'ball-orange', 'ball-cyan', 'ball-pink'];
+
+    function downloadCurrentApp() {
+      const htmlContent = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+      const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "mascal_lottery_triage.html";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    let audioCtx = null;
+    function playBeep(freq = 600, duration = 0.05) {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function playWinChord() {
+      [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+        setTimeout(() => playBeep(freq, 0.18), idx * 70);
+      });
+    }
+
+    function initPool() {
+      availablePool = Array.from({ length: TOTAL_NUMBERS }, (_, i) => i + 1);
+      roundsDrawnCount = 0;
+      Object.keys(triageZonesData).forEach(k => triageZonesData[k] = []);
+      renderBoardGrid();
+      updateAllZoneContainers();
+      updateStatus();
+    }
+
+    function renderBoardGrid() {
+      const grid = document.getElementById('boardGrid');
+      grid.innerHTML = '';
+      for (let i = 1; i <= TOTAL_NUMBERS; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'board-cell';
+        cell.id = `board-cell-${i}`;
+        cell.textContent = i < 10 ? `0${i}` : i;
+        cell.title = `點擊預覽 Patient #${i} 投影片`;
+        cell.onclick = () => openSlideModal(i);
+        grid.appendChild(cell);
+      }
+    }
+
+    function updateStatus() {
+      document.getElementById('remainCount').textContent = availablePool.length;
+      updateCounters();
+    }
+
+    function updateCounters() {
+      ['IMMEDIATE', 'DELAYED', 'MINOR', 'EXPECTANT', 'OR', 'ICU', 'DISCHARGED'].forEach(k => {
+        const cntEl = document.getElementById(`counter-${k}`);
+        if (cntEl) cntEl.textContent = triageZonesData[k].length;
+      });
+    }
+
+    /* ========================================================= */
+    /* 核心抽籤邏輯：
+       第 1 輪 (重設後)：強制抽出 4~6 人，且 2/3 以上為 MINOR
+       第 2 輪起：完全隨機 1~6 人
+    /* ========================================================= */
+    function pickSelectedNumbers() {
+      const isFirstRound = (roundsDrawnCount === 0);
+
+      if (isFirstRound) {
+        const maxDraw = Math.min(6, availablePool.length);
+        const minDraw = Math.min(4, availablePool.length);
+        const drawCount = Math.floor(Math.random() * (maxDraw - minDraw + 1)) + minDraw;
+        const requiredMinorCount = Math.ceil(drawCount * (2 / 3));
+
+        const minorPool = availablePool.filter(id => {
+          const pt = PATIENTS_DATA.find(p => p.id === id);
+          return pt && pt.triage === 'MINOR';
+        });
+
+        const actualMinorPicks = Math.min(requiredMinorCount, minorPool.length);
+        const otherPicks = drawCount - actualMinorPicks;
+        const selected = [];
+
+        const shuffledMinor = [...minorPool].sort(() => 0.5 - Math.random());
+        for (let i = 0; i < actualMinorPicks; i++) {
+          selected.push(shuffledMinor[i]);
+        }
+
+        const remainingCandidatePool = availablePool.filter(id => !selected.includes(id));
+        const shuffledRemaining = [...remainingCandidatePool].sort(() => 0.5 - Math.random());
+        for (let i = 0; i < otherPicks && i < shuffledRemaining.length; i++) {
+          selected.push(shuffledRemaining[i]);
+        }
+
+        availablePool = availablePool.filter(id => !selected.includes(id));
+        selected.sort((a, b) => a - b);
+        roundsDrawnCount++;
+        return selected;
+      } else {
+        const randomCount = Math.floor(Math.random() * 6) + 1;
+        const actualCount = Math.min(randomCount, availablePool.length);
+        const poolCopy = [...availablePool];
+        const selected = [];
+
+        for (let i = 0; i < actualCount; i++) {
+          const rIdx = Math.floor(Math.random() * poolCopy.length);
+          selected.push(poolCopy.splice(rIdx, 1)[0]);
+        }
+
+        availablePool = poolCopy;
+        selected.sort((a, b) => a - b);
+        roundsDrawnCount++;
+        return selected;
+      }
+    }
+
+    function startDrawProcess() {
+      if (isDrawing) return;
+
+      if (availablePool.length === 0) {
+        alert('全部 30 位傷患號碼已抽完！請點選「重設全部紀錄」重新開始演練。');
+        return;
+      }
+
+      const selectedNumbers = pickSelectedNumbers();
+      const actualCount = selectedNumbers.length;
+
+      isDrawing = true;
+      document.getElementById('btnDraw').disabled = true;
+      document.getElementById('chamberLabel').textContent = `開獎中... 隨機抽出 ${actualCount} 位傷患`;
+
+      const stage = document.getElementById('drawnStage');
+      stage.innerHTML = '';
+
+      const ballElements = [];
+      for (let i = 0; i < actualCount; i++) {
+        const ball = document.createElement('div');
+        const colorClass = ballColors[i % ballColors.length];
+        ball.className = `ball ${colorClass} rolling`;
+        ball.textContent = Math.floor(Math.random() * 30) + 1;
+        stage.appendChild(ball);
+        ballElements.push(ball);
+      }
+
+      let rollTicks = 0;
+      const maxTicks = 18;
+      const interval = setInterval(() => {
+        rollTicks++;
+        playBeep(400 + Math.random() * 300, 0.03);
+
+        ballElements.forEach(ball => {
+          ball.textContent = Math.floor(Math.random() * 30) + 1;
+        });
+
+        if (rollTicks >= maxTicks) {
+          clearInterval(interval);
+          finishDraw(selectedNumbers, ballElements);
+        }
+      }, 70);
+    }
+
+    function finishDraw(finalNumbers, ballElements) {
+      playWinChord();
+
+      finalNumbers.forEach((num, idx) => {
+        const ball = ballElements[idx];
+        ball.classList.remove('rolling');
+        ball.textContent = num < 10 ? `0${num}` : num;
+        ball.title = `點擊查看 Patient #${num} 投影片 / 拖曳至右側分流區`;
+        ball.dataset.id = num;
+
+        makeBallDraggable(ball, num);
+
+        const cell = document.getElementById(`board-cell-${num}`);
+        if (cell) {
+          cell.classList.add('highlight');
+          cell.classList.add('drawn');
+        }
+      });
+
+      document.getElementById('chamberLabel').textContent = `抽出 ${finalNumbers.length} 位傷患（點擊看投影片 / 拖曳至右側 7 區）`;
+
+      updateStatus();
+      isDrawing = false;
+      document.getElementById('btnDraw').disabled = false;
+    }
+
+    function resetAll() {
+      if (isDrawing) return;
+      if (confirm('確定要重設全部紀錄、號碼池與檢傷分流區嗎？')) {
+        initPool();
+        document.getElementById('drawnStage').innerHTML = '<div class="empty-hint">✨ 點擊下方按鈕開始隨機抽籤（1-6 個）</div>';
+        document.getElementById('chamberLabel').textContent = '目前抽出號碼（點擊查看投影片 / 可拖曳至右側分流）';
+        updateStatus();
+      }
+    }
+
+    /* ========================================================= */
+    /* DRAG & DROP AND CLASSIFICATION SYSTEM (7 ZONES) */
+    /* ========================================================= */
+    let draggedPatientId = null;
+    let dragStartSourceZone = null;
+
+    function makeBallDraggable(element, patientId) {
+      element.setAttribute('draggable', 'true');
+
+      element.onclick = (e) => {
+        if (element.classList.contains('dragging')) return;
+        openSlideModal(patientId);
+      };
+
+      element.addEventListener('dragstart', (e) => {
+        draggedPatientId = patientId;
+        dragStartSourceZone = getParentZone(element);
+        element.classList.add('dragging');
+        e.dataTransfer.setData('text/plain', patientId);
+        e.dataTransfer.effectAllowed = 'move';
+      });
+
+      element.addEventListener('dragend', () => {
+        element.classList.remove('dragging');
+        draggedPatientId = null;
+        dragStartSourceZone = null;
+        clearDropHighlights();
+      });
+
+      let touchMoved = false;
+      let clonedGhost = null;
+
+      element.addEventListener('touchstart', (e) => {
+        touchMoved = false;
+        draggedPatientId = patientId;
+        dragStartSourceZone = getParentZone(element);
+      }, { passive: true });
+
+      element.addEventListener('touchmove', (e) => {
+        touchMoved = true;
+        const touch = e.touches[0];
+
+        if (!clonedGhost) {
+          clonedGhost = element.cloneNode(true);
+          clonedGhost.style.position = 'fixed';
+          clonedGhost.style.pointerEvents = 'none';
+          clonedGhost.style.zIndex = '9999';
+          clonedGhost.style.opacity = '0.85';
+          clonedGhost.style.transform = 'scale(1.1)';
+          document.body.appendChild(clonedGhost);
+          element.classList.add('dragging');
+        }
+
+        clonedGhost.style.left = `${touch.clientX - 25}px`;
+        clonedGhost.style.top = `${touch.clientY - 25}px`;
+
+        const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+        const dropZone = targetEl ? targetEl.closest('.drop-zone, .drawn-balls-stage') : null;
+        clearDropHighlights();
+        if (dropZone) dropZone.classList.add('drag-hover');
+      }, { passive: true });
+
+      element.addEventListener('touchend', (e) => {
+        if (clonedGhost) {
+          clonedGhost.remove();
+          clonedGhost = null;
+        }
+        element.classList.remove('dragging');
+
+        if (touchMoved) {
+          const touch = e.changedTouches[0];
+          const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+          const dropZone = targetEl ? targetEl.closest('.drop-zone, .drawn-balls-stage') : null;
+          if (dropZone) {
+            const destZone = dropZone.dataset.zone;
+            movePatientToZone(patientId, destZone);
+          }
+        }
+        clearDropHighlights();
+        draggedPatientId = null;
+      });
+    }
+
+    function getParentZone(el) {
+      const zoneEl = el.closest('.drop-zone, .drawn-balls-stage');
+      return zoneEl ? zoneEl.dataset.zone : null;
+    }
+
+    function clearDropHighlights() {
+      document.querySelectorAll('.drop-zone, .drawn-balls-stage').forEach(z => {
+        z.classList.remove('drag-hover', 'drag-over');
+      });
+    }
+
+    function setupDropTargets() {
+      const dropTargets = document.querySelectorAll('.drop-zone, .drawn-balls-stage');
+
+      dropTargets.forEach(target => {
+        target.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          target.classList.add('drag-hover');
+        });
+
+        target.addEventListener('dragleave', () => {
+          target.classList.remove('drag-hover');
+        });
+
+        target.addEventListener('drop', (e) => {
+          e.preventDefault();
+          target.classList.remove('drag-hover');
+          const pId = parseInt(e.dataTransfer.getData('text/plain') || draggedPatientId, 10);
+          const destZone = target.dataset.zone;
+          if (pId && destZone) {
+            movePatientToZone(pId, destZone);
+          }
+        });
+      });
+    }
+
+    function movePatientToZone(patientId, destinationZone) {
+      playBeep(750, 0.08);
+
+      // 1. Remove from all 7 zones
+      Object.keys(triageZonesData).forEach(k => {
+        triageZonesData[k] = triageZonesData[k].filter(id => id !== patientId);
+      });
+
+      // 2. Remove from active chamber stage DOM if moving to a triage zone
+      const stageBall = document.querySelector(`.drawn-balls-stage .ball[data-id="${patientId}"]`);
+      if (destinationZone !== 'chamber' && stageBall) {
+        stageBall.remove();
+      }
+
+      // 3. Add to target zone
+      if (destinationZone !== 'chamber') {
+        if (!triageZonesData[destinationZone].includes(patientId)) {
+          triageZonesData[destinationZone].push(patientId);
+          triageZonesData[destinationZone].sort((a, b) => a - b);
+        }
+      } else {
+        if (!stageBall) {
+          renderBallInChamber(patientId);
+        }
+      }
+
+      // 4. Chamber status update
+      const stage = document.getElementById('drawnStage');
+      if (stage.children.length === 0) {
+        stage.innerHTML = '<div class="empty-hint">彩球已全部分流至右側分流區</div>';
+      }
+
+      updateAllZoneContainers();
+      updateCounters();
+    }
+
+    function renderBallInChamber(patientId) {
+      const stage = document.getElementById('drawnStage');
+      const emptyHint = stage.querySelector('.empty-hint');
+      if (emptyHint) emptyHint.remove();
+
+      const ball = document.createElement('div');
+      const colorClass = ballColors[patientId % ballColors.length];
+      ball.className = `ball ${colorClass}`;
+      ball.textContent = patientId < 10 ? `0${patientId}` : patientId;
+      ball.title = `點擊查看 Patient #${patientId} 投影片 / 拖曳至右側分流區`;
+      ball.dataset.id = patientId;
+      makeBallDraggable(ball, patientId);
+      stage.appendChild(ball);
+    }
+
+    function updateAllZoneContainers() {
+      ['IMMEDIATE', 'DELAYED', 'MINOR', 'EXPECTANT', 'OR', 'ICU', 'DISCHARGED'].forEach(zoneKey => {
+        const container = document.getElementById(`zone-container-${zoneKey}`);
+        if (!container) return;
+
+        const ids = triageZonesData[zoneKey];
+        if (ids.length === 0) {
+          container.innerHTML = '<span class="zone-empty-text">拖曳至此處</span>';
+        } else {
+          container.innerHTML = '';
+          ids.forEach(num => {
+            const zBall = document.createElement('div');
+            const colorClass = ballColors[num % ballColors.length];
+            zBall.className = `zone-ball ${colorClass}`;
+            zBall.textContent = num < 10 ? `0${num}` : num;
+            zBall.title = `點擊查看 Patient #${num} 投影片 / 可拖曳至其他區域`;
+            zBall.dataset.id = num;
+            makeBallDraggable(zBall, num);
+            container.appendChild(zBall);
+          });
+        }
+      });
+    }
+
+    /* ========================================================= */
+    /* SLIDE MODAL LOGIC (PURE TEXT & DEFAULT HIDDEN ANSWER) */
+    /* ========================================================= */
+    function openSlideModal(patientId) {
+      if (patientId < 1 || patientId > 30) return;
+      currentViewingSlideId = patientId;
+      isAnswerRevealed = false; // 預設完全隱藏檢傷答案
+      renderSlideContent(patientId);
+      document.getElementById('slideModal').classList.add('active');
+    }
+
+    function closeSlideModal() {
+      document.getElementById('slideModal').classList.remove('active');
+    }
+
+    function handleModalBackdropClick(e) {
+      if (e.target.id === 'slideModal') {
+        closeSlideModal();
+      }
+    }
+
+    function navigateSlide(direction) {
+      let nextId = currentViewingSlideId + direction;
+      if (nextId < 1) nextId = 30;
+      if (nextId > 30) nextId = 1;
+      openSlideModal(nextId);
+    }
+
+    function revealAnswer() {
+      isAnswerRevealed = true;
+      renderTriageArea();
+    }
+
+    function toggleAnswerVisibility() {
+      isAnswerRevealed = !isAnswerRevealed;
+      renderTriageArea();
+    }
+
+    function renderTriageArea() {
+      const data = PATIENTS_DATA.find(p => p.id === currentViewingSlideId);
+      if (!data) return;
+
+      const triageContainer = document.getElementById('slideTriageContainer');
+      const toggleBtn = document.getElementById('btnToggleAnswer');
+
+      if (isAnswerRevealed) {
+        triageContainer.innerHTML = `
+          <div class="triage-bottom-tag triage-${data.triage}" id="slideTriageTag" title="點擊重新隱藏" onclick="toggleAnswerVisibility()">
+            ${data.triage}
+          </div>
+        `;
+        toggleBtn.textContent = '🙈 隱藏檢傷等級';
+      } else {
+        triageContainer.innerHTML = `
+          <button class="btn-reveal-answer" onclick="revealAnswer()">
+            🔍 點擊揭曉檢傷等級
+          </button>
+        `;
+        toggleBtn.textContent = '👁️ 顯示檢傷等級';
+      }
+    }
+
+    function renderSlideContent(id) {
+      const data = PATIENTS_DATA.find(p => p.id === id);
+      if (!data) return;
+
+      document.getElementById('slideTitle').textContent = data.title;
+      document.getElementById('slideBadgeNum').textContent = `${data.id} / 30`;
+
+      const list = document.getElementById('slideDetailsList');
+      list.innerHTML = `
+        <li>${data.demographics}</li>
+        <li>${data.mobility}</li>
+        <li>${data.injury}</li>
+      `;
+
+      const vitals = document.getElementById('slideVitalsBox');
+      vitals.innerHTML = data.vitals.map(v => `<div>${v}</div>`).join('');
+
+      renderTriageArea();
+    }
+
+    window.addEventListener('keydown', (e) => {
+      const modal = document.getElementById('slideModal');
+      if (modal.classList.contains('active')) {
+        if (e.key === 'Escape') closeSlideModal();
+        if (e.key === 'ArrowLeft') navigateSlide(-1);
+        if (e.key === 'ArrowRight') navigateSlide(1);
+        if (e.key === ' ' || e.key === 'Enter') {
+          toggleAnswerVisibility();
+        }
+      }
+    });
+
+    initPool();
+    setupDropTargets();
+  </script>
+</body>
+</html>
+```eof
+
+### 本次更新說明：
+1. **分流區增為 7 區**：
+   - **紅區 (IMMEDIATE - 第一優先)**
+   - **黃區 (DELAYED - 第二優先)**
+   - **綠區 (MINOR - 第三優先)**
+   - **黑區 (EXPECTANT - 瀕死)**
+   - **OR (手術室)**
+   - **ICU (加護病房)**
+   - **出院 (DISCHARGE)**：新增藍色標籤區域，並具有專屬計數與拖曳功能。
+2. **彩球流動**：抽出的彩球可在開獎展示台與 7 個分流區域之間自由拖曳分類、跨區互換，且各區域均能即時統計人數。
